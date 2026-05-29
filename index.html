@@ -685,11 +685,6 @@ canvas.addEventListener('pointerdown', function(e){
   isDrawing = true;
   var p = getPos(e);
   lastX = p.x; lastY = p.y;
-  ctx.beginPath();
-  ctx.arc(lastX, lastY, (tool==='eraser'?penSize*4:penSize)/2, 0, Math.PI*2);
-  ctx.fillStyle = tool==='eraser' ? 'rgba(0,0,0,1)' : penColor;
-  if(tool==='eraser'){ ctx.globalCompositeOperation='destination-out'; ctx.fill(); ctx.globalCompositeOperation='source-over'; }
-  else { ctx.fill(); }
 }, {passive:false});
 
 canvas.addEventListener('pointermove', function(e){
@@ -702,7 +697,7 @@ canvas.addEventListener('pointermove', function(e){
   if(tool==='eraser'){
     ctx.globalCompositeOperation='destination-out';
     ctx.strokeStyle='rgba(0,0,0,1)';
-    ctx.lineWidth = penSize * 8;
+    ctx.lineWidth = penSize * 10;
   } else {
     ctx.globalCompositeOperation='source-over';
     ctx.strokeStyle = penColor;
@@ -725,6 +720,7 @@ function saveDrawing(){
 }
 
 function clearCanvas(){
+  if(!confirm('Tüm çizim silinecek. Emin misiniz?')) return;
   ctx.clearRect(0,0,canvas.width,canvas.height);
   saveDrawing();
 }
