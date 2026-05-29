@@ -58,18 +58,53 @@ body{font-family:-apple-system,'Helvetica Neue',Arial,sans-serif;background:var(
 .fh-info{flex:1;}
 .fh-info .bed{font-size:20px;font-weight:800;color:var(--accent);line-height:1;}
 .fh-info .nm{font-size:13px;color:var(--muted);}
+.btn-draw{background:#f5f3ff;color:#5b21b6;border:1.5px solid #7c3aed;border-radius:8px;padding:8px 14px;font-family:inherit;font-size:14px;font-weight:700;cursor:pointer;min-height:40px;}
+.btn-draw.active{background:#7c3aed;color:#fff;}
 .btn-save{background:var(--accent);color:#fff;border:none;border-radius:8px;padding:8px 18px;font-family:inherit;font-size:14px;font-weight:700;cursor:pointer;min-height:40px;}
 .btn-save.saved{background:var(--green);}
 
-/* LAYOUT */
+/* CANVAS OVERLAY */
+#drawCanvas{
+  display:none;
+  position:fixed;
+  top:0;left:0;width:100%;height:100%;
+  z-index:50;
+  cursor:crosshair;
+  touch-action:none;
+}
+#drawCanvas.active{display:block;}
+#drawToolbar{
+  display:none;
+  position:fixed;
+  bottom:24px;
+  left:50%;
+  transform:translateX(-50%);
+  z-index:51;
+  background:#fff;
+  border:1.5px solid var(--border);
+  border-radius:40px;
+  padding:8px 16px;
+  gap:10px;
+  align-items:center;
+  box-shadow:0 4px 20px rgba(0,0,0,.15);
+}
+#drawToolbar.active{display:flex;}
+.dtool{width:36px;height:36px;border-radius:50%;border:2px solid var(--border);background:#fff;cursor:pointer;display:flex;align-items:center;justify-content:center;font-size:16px;-webkit-tap-highlight-color:transparent;}
+.dtool.sel{border-color:var(--accent);background:var(--accent-light);}
+.dcolor{width:28px;height:28px;border-radius:50%;border:3px solid transparent;cursor:pointer;-webkit-tap-highlight-color:transparent;}
+.dcolor.sel{border-color:#1a1f2e;}
+.dsize{height:28px;display:flex;align-items:center;gap:4px;padding:0 6px;border-left:1px solid var(--border);}
+.dsize button{background:none;border:none;cursor:pointer;font-size:11px;font-weight:700;color:var(--muted);padding:2px 5px;border-radius:4px;}
+.dsize button.sel{background:var(--accent);color:#fff;}
+
 .form-layout{display:flex;align-items:flex-start;gap:10px;max-width:1140px;margin:0 auto;padding:12px 14px 60px;}
 .form-body{flex:1;min-width:0;}
 
 /* SIDE PANEL */
-.side-panel{width:52px;flex-shrink:0;position:sticky;top:64px;height:calc(100vh - 80px);display:flex;flex-direction:column;}
-.side-panel-inner{background:#fff;border:2px solid var(--purple);border-radius:var(--radius);overflow:hidden;display:flex;flex-direction:row;height:100%;width:100%;}
-.side-panel-title{background:var(--purple-light);color:#5b21b6;font-size:10px;font-weight:800;letter-spacing:1.5px;text-transform:uppercase;writing-mode:vertical-rl;text-orientation:mixed;transform:rotate(180deg);padding:14px 6px;border-right:1px solid #ddd6fe;white-space:nowrap;display:flex;align-items:center;flex-shrink:0;}
-.side-panel textarea{flex:1;background:#fdfcff;border:none;padding:10px 6px;font-family:inherit;font-size:13px;color:var(--text);resize:none;outline:none;line-height:1.6;width:0;min-width:0;writing-mode:vertical-rl;text-orientation:mixed;transform:rotate(180deg);}
+.side-panel{width:180px;flex-shrink:0;position:sticky;top:64px;height:calc(100vh - 80px);display:flex;flex-direction:column;}
+.side-panel-inner{background:#fff;border:2px solid var(--purple);border-radius:var(--radius);overflow:hidden;display:flex;flex-direction:column;height:100%;width:100%;}
+.side-panel-title{background:var(--purple-light);color:#5b21b6;font-size:11px;font-weight:800;letter-spacing:1px;text-transform:uppercase;padding:8px 12px;border-bottom:1px solid #ddd6fe;white-space:nowrap;}
+.side-panel textarea{flex:1;background:#fdfcff;border:none;padding:10px 12px;font-family:inherit;font-size:14px;color:var(--text);resize:none;outline:none;line-height:1.6;width:100%;}
 
 /* CARD */
 .card{background:#fff;border:1.5px solid var(--border);border-radius:var(--radius);margin-bottom:var(--gap);overflow:hidden;}
@@ -194,6 +229,7 @@ body{font-family:-apple-system,'Helvetica Neue',Arial,sans-serif;background:var(
       <div class="bed" id="hdrBed">—</div>
       <div class="nm" id="hdrName">—</div>
     </div>
+    <button class="btn-draw" id="btnDraw" onclick="toggleDraw()">&#9998; Ciz</button>
     <button class="btn-save" id="btnSave" onclick="savePatient()">Kaydet</button>
   </div>
 
@@ -375,13 +411,34 @@ body{font-family:-apple-system,'Helvetica Neue',Arial,sans-serif;background:var(
   <!-- YAN NOT -->
   <div class="side-panel">
     <div class="side-panel-inner">
-      <div class="side-panel-title">Nöbet Notlari</div>
-      <textarea id="f_nobetnot" placeholder="Yapilacaklar, bekleyen sonuclar..."></textarea>
+      <div class="side-panel-title">📋 Nöbet Notlari</div>
+      <textarea id="f_nobetnot" placeholder="Yapilacaklar&#10;Bekleyen sonuclar&#10;Aile görüsmesi&#10;..."></textarea>
     </div>
   </div>
 
   </div><!-- /form-layout -->
 </div><!-- /formScreen -->
+
+<!-- CANVAS OVERLAY -->
+<canvas id="drawCanvas"></canvas>
+
+<div id="drawToolbar">
+  <div class="dtool sel" id="toolPen" onclick="setTool('pen')" title="Kalem">&#9998;</div>
+  <div class="dtool" id="toolEraser" onclick="setTool('eraser')" title="Silgi">&#9003;</div>
+  <div style="border-left:1px solid var(--border);height:28px;margin:0 2px;"></div>
+  <div class="dcolor sel" style="background:#1a1f2e;" data-color="#1a1f2e" onclick="setColor(this)"></div>
+  <div class="dcolor" style="background:#dc2626;" data-color="#dc2626" onclick="setColor(this)"></div>
+  <div class="dcolor" style="background:#2563eb;" data-color="#2563eb" onclick="setColor(this)"></div>
+  <div class="dcolor" style="background:#15803d;" data-color="#15803d" onclick="setColor(this)"></div>
+  <div style="border-left:1px solid var(--border);height:28px;margin:0 2px;"></div>
+  <div class="dsize">
+    <button class="sel" data-size="2" onclick="setSize(this)">S</button>
+    <button data-size="4" onclick="setSize(this)">M</button>
+    <button data-size="8" onclick="setSize(this)">L</button>
+  </div>
+  <div style="border-left:1px solid var(--border);height:28px;margin:0 2px;"></div>
+  <div class="dtool" onclick="clearCanvas()" title="Temizle" style="color:var(--red);">&#128465;</div>
+</div>
 
 <script>
 var STORE = 'ybu_v3';
@@ -563,6 +620,130 @@ renderList();
 if('serviceWorker' in navigator){
   navigator.serviceWorker.register('sw.js').catch(function(){});
 }
-</script>
-</body>
-</html>
+
+// ══ CANVAS ÇİZİM ══
+var canvas = document.getElementById('drawCanvas');
+var ctx = canvas.getContext('2d');
+var isDrawing = false;
+var drawMode = false;
+var tool = 'pen';
+var penColor = '#1a1f2e';
+var penSize = 2;
+var lastX = 0, lastY = 0;
+
+function resizeCanvas(){
+  var data = canvas.toDataURL();
+  canvas.width = window.innerWidth;
+  canvas.height = window.innerHeight;
+  ctx.lineCap = 'round';
+  ctx.lineJoin = 'round';
+  if(data !== 'data:,'){
+    var img = new Image();
+    img.onload = function(){ ctx.drawImage(img,0,0); };
+    img.src = data;
+  }
+}
+
+window.addEventListener('resize', resizeCanvas);
+
+function toggleDraw(){
+  drawMode = !drawMode;
+  var btn = document.getElementById('btnDraw');
+  var c = document.getElementById('drawCanvas');
+  var tb = document.getElementById('drawToolbar');
+  if(drawMode){
+    resizeCanvas();
+    // Kayitli cizimi yukle
+    if(currentId && patients[currentId] && patients[currentId]['_drawing']){
+      var img = new Image();
+      img.onload = function(){ ctx.drawImage(img,0,0); };
+      img.src = patients[currentId]['_drawing'];
+    }
+    c.classList.add('active');
+    tb.classList.add('active');
+    btn.classList.add('active');
+    btn.textContent = '☝️ Kaydir';
+  } else {
+    c.classList.remove('active');
+    tb.classList.remove('active');
+    btn.classList.remove('active');
+    btn.innerHTML = '&#9998; Ciz';
+  }
+}
+
+function getPos(e){
+  var r = canvas.getBoundingClientRect();
+  if(e.touches && e.touches.length > 0){
+    return { x: e.touches[0].clientX - r.left, y: e.touches[0].clientY - r.top };
+  }
+  return { x: e.clientX - r.left, y: e.clientY - r.top };
+}
+
+canvas.addEventListener('pointerdown', function(e){
+  if(!drawMode) return;
+  e.preventDefault();
+  isDrawing = true;
+  var p = getPos(e);
+  lastX = p.x; lastY = p.y;
+  ctx.beginPath();
+  ctx.arc(lastX, lastY, (tool==='eraser'?penSize*4:penSize)/2, 0, Math.PI*2);
+  ctx.fillStyle = tool==='eraser' ? 'rgba(0,0,0,1)' : penColor;
+  if(tool==='eraser'){ ctx.globalCompositeOperation='destination-out'; ctx.fill(); ctx.globalCompositeOperation='source-over'; }
+  else { ctx.fill(); }
+}, {passive:false});
+
+canvas.addEventListener('pointermove', function(e){
+  if(!isDrawing || !drawMode) return;
+  e.preventDefault();
+  var p = getPos(e);
+  ctx.beginPath();
+  ctx.moveTo(lastX, lastY);
+  ctx.lineTo(p.x, p.y);
+  if(tool==='eraser'){
+    ctx.globalCompositeOperation='destination-out';
+    ctx.strokeStyle='rgba(0,0,0,1)';
+    ctx.lineWidth = penSize * 8;
+  } else {
+    ctx.globalCompositeOperation='source-over';
+    ctx.strokeStyle = penColor;
+    ctx.lineWidth = penSize;
+  }
+  ctx.lineCap='round';
+  ctx.lineJoin='round';
+  ctx.stroke();
+  lastX = p.x; lastY = p.y;
+}, {passive:false});
+
+canvas.addEventListener('pointerup', function(){ isDrawing=false; saveDrawing(); });
+canvas.addEventListener('pointercancel', function(){ isDrawing=false; });
+
+function saveDrawing(){
+  if(!currentId) return;
+  if(!patients[currentId]) return;
+  patients[currentId]['_drawing'] = canvas.toDataURL('image/png', 0.5);
+  saveStore();
+}
+
+function clearCanvas(){
+  ctx.clearRect(0,0,canvas.width,canvas.height);
+  saveDrawing();
+}
+
+function setTool(t){
+  tool=t;
+  document.getElementById('toolPen').classList.toggle('sel', t==='pen');
+  document.getElementById('toolEraser').classList.toggle('sel', t==='eraser');
+}
+
+function setColor(el){
+  penColor = el.dataset.color;
+  document.querySelectorAll('.dcolor').forEach(function(d){ d.classList.remove('sel'); });
+  el.classList.add('sel');
+  if(tool==='eraser') setTool('pen');
+}
+
+function setSize(btn){
+  penSize = parseInt(btn.dataset.size);
+  document.querySelectorAll('.dsize button').forEach(function(b){ b.classList.remove('sel'); });
+  btn.classList.add('sel');
+}
