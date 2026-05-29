@@ -1,0 +1,568 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="default">
+<meta name="apple-mobile-web-app-title" content="YBU Takip">
+<meta name="theme-color" content="#2563eb">
+<link rel="manifest" href="manifest.json">
+<link rel="apple-touch-icon" href="icon.png">
+<title>YBU Takip</title>
+<style>
+*{box-sizing:border-box;margin:0;padding:0;}
+:root{
+  --bg:#f0f2f5;--white:#fff;--border:#d0d7e2;--border-dark:#b0bac8;
+  --text:#1a1f2e;--muted:#6b7590;--label:#3a4260;
+  --accent:#2563eb;--accent-light:#eff4ff;
+  --red:#dc2626;--red-light:#fef2f2;
+  --yellow:#b45309;--yellow-light:#fffbeb;
+  --green:#15803d;--green-light:#f0fdf4;
+  --purple:#6d28d9;--purple-light:#f5f3ff;
+  --radius:12px;--gap:10px;
+}
+body{font-family:-apple-system,'Helvetica Neue',Arial,sans-serif;background:var(--bg);color:var(--text);font-size:15px;-webkit-text-size-adjust:100%;min-height:100vh;}
+
+/* LIST */
+#listScreen{display:block;}
+#formScreen{display:none;}
+
+.list-header{background:var(--accent);color:#fff;padding:16px 16px 12px;position:sticky;top:0;z-index:100;}
+.list-header h1{font-size:18px;font-weight:800;letter-spacing:.5px;}
+.list-header p{font-size:12px;opacity:.75;margin-top:2px;}
+.list-toolbar{display:flex;gap:8px;align-items:center;margin-top:10px;}
+.list-toolbar input{flex:1;background:rgba(255,255,255,.2);border:1.5px solid rgba(255,255,255,.3);border-radius:8px;padding:8px 12px;font-family:inherit;font-size:14px;color:#fff;outline:none;-webkit-appearance:none;}
+.list-toolbar input::placeholder{color:rgba(255,255,255,.6);}
+.btn-new{background:#fff;color:var(--accent);border:none;border-radius:8px;padding:8px 16px;font-family:inherit;font-size:14px;font-weight:700;cursor:pointer;white-space:nowrap;min-height:40px;}
+
+.patient-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:10px;padding:14px;}
+.patient-card{background:#fff;border:1.5px solid var(--border);border-radius:var(--radius);padding:12px;cursor:pointer;transition:all .12s;position:relative;min-height:90px;}
+.patient-card:active{transform:scale(.97);background:var(--accent-light);}
+.patient-card.has-data{border-color:var(--accent);}
+.pc-bed{font-size:26px;font-weight:800;color:var(--accent);line-height:1;}
+.pc-name{font-size:13px;font-weight:600;color:var(--text);margin-top:4px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+.pc-empty{font-size:12px;color:var(--muted);margin-top:4px;}
+.pc-flags{display:flex;flex-wrap:wrap;gap:3px;margin-top:6px;}
+.pc-flag{font-size:9px;font-weight:700;padding:2px 5px;border-radius:4px;}
+.pc-flag.adli{background:var(--yellow-light);color:var(--yellow);}
+.pc-flag.vre,.pc-flag.cre{background:var(--red-light);color:var(--red);}
+.pc-flag.candida{background:var(--purple-light);color:var(--purple);}
+.pc-delete{position:absolute;top:8px;right:8px;width:24px;height:24px;background:var(--red-light);border:none;border-radius:50%;color:var(--red);font-size:14px;cursor:pointer;display:none;align-items:center;justify-content:center;}
+.patient-card:hover .pc-delete,.patient-card:focus-within .pc-delete{display:flex;}
+.grp-heading{grid-column:1/-1;font-size:12px;font-weight:800;color:var(--accent);text-transform:uppercase;letter-spacing:1px;padding:6px 2px 2px;border-bottom:2px solid var(--accent);margin-top:4px;}
+
+/* FORM HEADER */
+.form-header{background:#fff;border-bottom:1.5px solid var(--border);padding:10px 14px;display:flex;align-items:center;gap:10px;position:sticky;top:0;z-index:100;}
+.btn-back{background:var(--accent-light);color:var(--accent);border:1.5px solid var(--accent);border-radius:8px;padding:6px 14px;font-family:inherit;font-size:14px;font-weight:700;cursor:pointer;min-height:40px;}
+.fh-info{flex:1;}
+.fh-info .bed{font-size:20px;font-weight:800;color:var(--accent);line-height:1;}
+.fh-info .nm{font-size:13px;color:var(--muted);}
+.btn-save{background:var(--accent);color:#fff;border:none;border-radius:8px;padding:8px 18px;font-family:inherit;font-size:14px;font-weight:700;cursor:pointer;min-height:40px;}
+.btn-save.saved{background:var(--green);}
+
+/* LAYOUT */
+.form-layout{display:flex;align-items:flex-start;gap:10px;max-width:1140px;margin:0 auto;padding:12px 14px 60px;}
+.form-body{flex:1;min-width:0;}
+
+/* SIDE PANEL */
+.side-panel{width:52px;flex-shrink:0;position:sticky;top:64px;height:calc(100vh - 80px);display:flex;flex-direction:column;}
+.side-panel-inner{background:#fff;border:2px solid var(--purple);border-radius:var(--radius);overflow:hidden;display:flex;flex-direction:row;height:100%;width:100%;}
+.side-panel-title{background:var(--purple-light);color:#5b21b6;font-size:10px;font-weight:800;letter-spacing:1.5px;text-transform:uppercase;writing-mode:vertical-rl;text-orientation:mixed;transform:rotate(180deg);padding:14px 6px;border-right:1px solid #ddd6fe;white-space:nowrap;display:flex;align-items:center;flex-shrink:0;}
+.side-panel textarea{flex:1;background:#fdfcff;border:none;padding:10px 6px;font-family:inherit;font-size:13px;color:var(--text);resize:none;outline:none;line-height:1.6;width:0;min-width:0;writing-mode:vertical-rl;text-orientation:mixed;transform:rotate(180deg);}
+
+/* CARD */
+.card{background:#fff;border:1.5px solid var(--border);border-radius:var(--radius);margin-bottom:var(--gap);overflow:hidden;}
+.card-title{font-size:11px;font-weight:700;letter-spacing:1px;text-transform:uppercase;color:var(--muted);padding:7px 14px 6px;background:#f7f8fa;border-bottom:1px solid var(--border);}
+.card-body{padding:12px 14px;}
+
+/* FIELDS */
+.top-row{display:flex;gap:10px;flex-wrap:wrap;align-items:flex-end;margin-bottom:12px;}
+.tf{display:flex;flex-direction:column;gap:3px;}
+.tf label{font-size:11px;font-weight:700;color:var(--label);text-transform:uppercase;letter-spacing:.3px;}
+.tf input{background:var(--bg);border:1.5px solid var(--border);border-radius:8px;padding:8px 12px;font-family:inherit;font-size:16px;font-weight:600;color:var(--text);outline:none;min-height:44px;-webkit-appearance:none;}
+.tf input:focus{border-color:var(--accent);}
+.w-sm{width:80px;} .w-md{width:140px;} .w-lg{width:200px;}
+
+.flag-row{display:flex;gap:8px;flex-wrap:wrap;}
+.flag{display:flex;align-items:center;gap:7px;border-radius:8px;padding:8px 14px;border:2px solid;cursor:pointer;user-select:none;min-height:44px;font-weight:700;font-size:13px;letter-spacing:.3px;-webkit-tap-highlight-color:transparent;transition:opacity .15s;}
+.flag .cc{width:20px;height:20px;border-radius:50%;border:2px solid currentColor;display:flex;align-items:center;justify-content:center;flex-shrink:0;font-size:12px;}
+.flag.off{opacity:.3;}
+.flag.on .cc{background:currentColor;}
+.flag.on .cc::after{content:'✓';color:#fff;font-size:11px;font-weight:800;}
+.flag.adli{border-color:var(--yellow);color:var(--yellow);background:var(--yellow-light);}
+.flag.vre,.flag.cre{border-color:var(--red);color:var(--red);background:var(--red-light);}
+.flag.candida{border-color:var(--purple);color:var(--purple);background:var(--purple-light);}
+
+.field{display:flex;flex-direction:column;gap:4px;margin-bottom:10px;}
+.field:last-child{margin-bottom:0;}
+.field label{font-size:11px;font-weight:700;color:var(--label);text-transform:uppercase;letter-spacing:.3px;}
+.field textarea,.field input[type=text]{background:var(--bg);border:1.5px solid var(--border);border-radius:8px;padding:10px 12px;font-family:inherit;font-size:15px;color:var(--text);outline:none;resize:vertical;width:100%;-webkit-appearance:none;line-height:1.5;}
+.field textarea:focus,.field input[type=text]:focus{border-color:var(--accent);}
+.ta-sm{height:70px;} .ta-md{height:100px;} .ta-lg{height:130px;}
+.two-col{display:grid;grid-template-columns:1fr 1fr;gap:10px;}
+
+/* GKS inline */
+.gks-row{display:flex;align-items:center;gap:8px;flex-wrap:wrap;margin-bottom:10px;}
+.gks-row .lbl{font-size:11px;font-weight:700;color:var(--label);text-transform:uppercase;letter-spacing:.3px;white-space:nowrap;}
+.gks-field{display:flex;align-items:center;gap:4px;}
+.gks-field label{font-size:10px;font-weight:700;color:var(--muted);}
+.gks-field input{width:48px;background:var(--bg);border:1.5px solid var(--border);border-radius:6px;padding:5px 4px;font-family:inherit;font-size:16px;font-weight:700;color:var(--accent);text-align:center;outline:none;min-height:36px;-webkit-appearance:none;}
+
+/* Pupil + IR inline */
+.pupil-row{display:flex;align-items:center;gap:8px;flex-wrap:wrap;margin-bottom:10px;}
+.pupil-row .lbl{font-size:11px;font-weight:700;color:var(--label);text-transform:uppercase;letter-spacing:.3px;white-space:nowrap;}
+.popt{padding:6px 12px;border-radius:7px;border:2px solid var(--border-dark);background:#fff;cursor:pointer;font-family:inherit;font-size:13px;font-weight:600;color:var(--muted);min-height:36px;white-space:nowrap;-webkit-tap-highlight-color:transparent;transition:all .12s;}
+.popt.sel{background:var(--text);border-color:var(--text);color:#fff;}
+.rfbtn{padding:5px 14px;border-radius:6px;border:2px solid var(--border-dark);background:#fff;font-family:inherit;font-size:14px;font-weight:700;color:var(--muted);cursor:pointer;min-height:36px;-webkit-tap-highlight-color:transparent;transition:all .12s;}
+.rfbtn.pos.sel{background:var(--green);border-color:var(--green);color:#fff;}
+.rfbtn.neg.sel{background:var(--red);border-color:var(--red);color:#fff;}
+.sep{font-size:11px;color:var(--muted);}
+.pnote-input{background:var(--bg);border:1.5px solid var(--border);border-radius:8px;padding:6px 10px;font-family:inherit;font-size:14px;color:var(--text);outline:none;flex:1;min-width:100px;min-height:36px;-webkit-appearance:none;}
+
+/* MV */
+.mv-row{display:flex;align-items:center;gap:10px;}
+.mv-row label{font-size:12px;font-weight:700;color:var(--label);text-transform:uppercase;white-space:nowrap;}
+.mv-row input{background:var(--bg);border:1.5px solid var(--border);border-radius:8px;padding:10px 14px;font-family:inherit;font-size:16px;font-weight:600;color:var(--text);outline:none;flex:1;min-height:44px;-webkit-appearance:none;}
+.mv-row input:focus{border-color:var(--accent);}
+
+/* INFUZYON */
+.inf-hdr,.inf-row{display:grid;grid-template-columns:32px 1fr 1fr;gap:6px;align-items:center;padding:4px 0;}
+.inf-hdr{border-bottom:1.5px solid var(--border-dark);margin-bottom:2px;padding-bottom:5px;}
+.inf-hdr span{font-size:10px;font-weight:700;color:var(--muted);text-transform:uppercase;}
+.inf-row{border-bottom:1px solid var(--border);}
+.inf-row:last-child{border-bottom:none;}
+.inf-icon{font-size:16px;text-align:center;}
+.inf-name{font-size:13px;font-weight:600;color:var(--label);}
+.inf-input{background:var(--bg);border:1.5px solid var(--border);border-radius:6px;padding:7px 10px;font-family:inherit;font-size:14px;color:var(--text);outline:none;min-height:38px;width:100%;-webkit-appearance:none;}
+.inf-input:focus{border-color:var(--accent);}
+.divider{height:1px;background:var(--border);margin:8px 0;}
+
+/* ABX */
+.abx-hdr,.abx-row{display:grid;grid-template-columns:2fr 1fr 55px;gap:6px;align-items:center;padding:4px 0;}
+.abx-hdr{border-bottom:1.5px solid var(--border-dark);margin-bottom:2px;padding-bottom:5px;}
+.abx-hdr span{font-size:10px;font-weight:700;color:#991b1b;text-transform:uppercase;}
+.abx-row{border-bottom:1px solid var(--border);}
+.abx-row:last-child{border-bottom:none;}
+.abx-inp{background:var(--bg);border:1.5px solid var(--border);border-radius:6px;padding:7px 10px;font-family:inherit;font-size:14px;color:var(--text);outline:none;min-height:38px;width:100%;-webkit-appearance:none;}
+.abx-inp:focus{border-color:var(--red);}
+.abx-gun{background:var(--red-light);border:1.5px solid var(--red);border-radius:6px;padding:7px 6px;font-family:inherit;font-size:14px;font-weight:700;color:var(--red);outline:none;min-height:38px;width:100%;text-align:center;-webkit-appearance:none;}
+
+/* KULTÜR */
+.kult-hdr,.kult-row{display:grid;grid-template-columns:1.4fr .9fr 2fr;gap:6px;align-items:center;padding:4px 0;}
+.kult-hdr{border-bottom:1.5px solid var(--border-dark);margin-bottom:2px;padding-bottom:5px;}
+.kult-hdr span{font-size:10px;font-weight:700;color:#14532d;text-transform:uppercase;}
+.kult-row{border-bottom:1px solid var(--border);}
+.kult-row:last-child{border-bottom:none;}
+.kult-fixed{font-size:13px;font-weight:600;color:var(--label);}
+.kult-inp{background:var(--bg);border:1.5px solid var(--border);border-radius:6px;padding:7px 10px;font-family:inherit;font-size:14px;color:var(--text);outline:none;min-height:38px;width:100%;-webkit-appearance:none;}
+
+/* SMALL INPUT */
+.sm-inp{background:var(--bg);border:1.5px solid var(--border);border-radius:7px;padding:7px 10px;font-family:inherit;color:var(--text);outline:none;min-height:40px;width:100%;-webkit-appearance:none;}
+.sm-inp:focus{border-color:var(--accent);}
+
+@media(max-width:780px){
+  .form-layout{flex-direction:column;padding:10px 10px 60px;}
+  .side-panel{width:100%;height:auto;position:static;order:-1;}
+  .side-panel-inner{flex-direction:column;height:auto;}
+  .side-panel-title{writing-mode:horizontal-tb;transform:none;border-right:none;border-bottom:1px solid #ddd6fe;padding:8px 12px;}
+  .side-panel textarea{writing-mode:horizontal-tb;transform:none;width:100%;min-height:80px;}
+  .two-col{grid-template-columns:1fr;}
+}
+</style>
+</head>
+<body>
+
+<!-- ══ LİSTE EKRANI ══ -->
+<div id="listScreen">
+  <div class="list-header">
+    <h1>YBU Hasta Takip</h1>
+    <p>Ege Universitesi — Anesteziyoloji &amp; Reanimasyon — 3. Basamak</p>
+    <div class="list-toolbar">
+      <input type="text" id="searchInput" placeholder="Hasta ara (ad, yatak, protokol)..." oninput="renderList()">
+      <button class="btn-new" onclick="newPatient(null)">+ Yeni Hasta</button>
+    </div>
+  </div>
+  <div class="patient-grid" id="patientGrid"></div>
+</div>
+
+<!-- ══ FORM EKRANI ══ -->
+<div id="formScreen">
+  <div class="form-header">
+    <button class="btn-back" onclick="goBack()">&#8592; Liste</button>
+    <div class="fh-info">
+      <div class="bed" id="hdrBed">—</div>
+      <div class="nm" id="hdrName">—</div>
+    </div>
+    <button class="btn-save" id="btnSave" onclick="savePatient()">Kaydet</button>
+  </div>
+
+  <div class="form-layout">
+  <div class="form-body">
+
+    <!-- 1. UST BILGI -->
+    <div class="card">
+      <div class="card-body">
+        <div class="top-row">
+          <div class="tf">
+            <label>Yatak</label>
+            <input class="w-sm" type="text" id="f_yatak" inputmode="numeric" placeholder="—" oninput="updateHeader()">
+          </div>
+          <div class="tf">
+            <label>Protokol</label>
+            <input class="w-md" type="text" id="f_protokol" inputmode="numeric" placeholder="0000000">
+          </div>
+          <div class="tf">
+            <label>Yatis Tarihi</label>
+            <input class="w-md" type="date" id="f_tarih">
+          </div>
+          <div class="tf" style="flex:1;min-width:160px;">
+            <label>Ad Soyad</label>
+            <input style="width:100%;" type="text" id="f_ad" placeholder="—" oninput="updateHeader()">
+          </div>
+        </div>
+        <div class="flag-row">
+          <div class="flag adli off" id="fl_adli" onclick="toggleFlag('fl_adli')"><div class="cc"></div>ADLI VAKA</div>
+          <div class="flag vre off"  id="fl_vre"  onclick="toggleFlag('fl_vre')"><div class="cc"></div>VRE</div>
+          <div class="flag cre off"  id="fl_cre"  onclick="toggleFlag('fl_cre')"><div class="cc"></div>CRE</div>
+          <div class="flag candida off" id="fl_candida" onclick="toggleFlag('fl_candida')"><div class="cc"></div>KANDIDA</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- 2. OZGECMIS -->
+    <div class="card">
+      <div class="card-title">Ozgecmis</div>
+      <div class="card-body two-col">
+        <div class="field">
+          <label>Bilinen Hastaliklar</label>
+          <textarea class="ta-sm" id="f_hastalik"></textarea>
+        </div>
+        <div class="field">
+          <label>Kronik Ilaclar</label>
+          <textarea class="ta-sm" id="f_kronikilas"></textarea>
+        </div>
+      </div>
+    </div>
+
+    <!-- 3. GELIS OYKÜSÜ -->
+    <div class="card">
+      <div class="card-title">Gelis Öyküsü</div>
+      <div class="card-body">
+        <div class="field">
+          <textarea class="ta-lg" id="f_gelisoyku"></textarea>
+        </div>
+      </div>
+    </div>
+
+    <!-- 4. RADYOLOJI — amber -->
+    <div class="card" style="border-color:#d97706;">
+      <div class="card-title" style="background:#fffbeb;color:#92400e;border-bottom-color:#fde68a;">&#128225; Radyolojik Görüntüleme</div>
+      <div class="card-body" style="background:#fffdf5;">
+        <div class="field">
+          <textarea class="ta-md" id="f_radyo"></textarea>
+        </div>
+      </div>
+    </div>
+
+    <!-- 5. BILINCNÖROLOJIK -->
+    <div class="card">
+      <div class="card-title">Bilinc &amp; Nörolojik Muayene</div>
+      <div class="card-body">
+        <div class="gks-row">
+          <span class="lbl">GKS</span>
+          <div class="gks-field"><label>E</label><input type="number" min="1" max="4" inputmode="numeric" id="f_gksE"></div>
+          <div class="gks-field"><label>M</label><input type="number" min="1" max="6" inputmode="numeric" id="f_gksM"></div>
+          <div class="gks-field"><label>V</label><input type="number" min="1" max="5" inputmode="numeric" id="f_gksV"></div>
+        </div>
+        <div class="pupil-row">
+          <span class="lbl">Pupil</span>
+          <button class="popt" data-val="NIK"        onclick="selectPupil(this)">NIK</button>
+          <button class="popt" data-val="Anizokorik" onclick="selectPupil(this)">Anizokorik</button>
+          <input class="pnote-input" type="text" id="f_pupilnot" placeholder="Ek not...">
+          <span class="sep">IR Sag</span>
+          <button class="rfbtn pos" id="irR_pos" onclick="selectRefl('R','pos')">+</button>
+          <button class="rfbtn neg" id="irR_neg" onclick="selectRefl('R','neg')">—</button>
+          <span class="sep">Sol</span>
+          <button class="rfbtn pos" id="irL_pos" onclick="selectRefl('L','pos')">+</button>
+          <button class="rfbtn neg" id="irL_neg" onclick="selectRefl('L','neg')">—</button>
+        </div>
+        <div class="field" style="margin-bottom:0;">
+          <label>Ek Bulgu</label>
+          <textarea class="ta-sm" id="f_ekbulgu"></textarea>
+        </div>
+      </div>
+    </div>
+
+    <!-- 6. MEKANİK VENTİLATÖR -->
+    <div class="card">
+      <div class="card-title">Mekanik Ventilatör</div>
+      <div class="card-body">
+        <div class="mv-row">
+          <label>Mod</label>
+          <input type="text" id="f_mvmod" placeholder="AC / SIMV / PSV / BiPAP / HFNC / Spontan">
+        </div>
+      </div>
+    </div>
+
+    <!-- 7. İNFÜZYONLAR -->
+    <div class="card">
+      <div class="card-title">Infüzyonlar</div>
+      <div class="card-body">
+        <div class="inf-hdr"><span></span><span>Ilac / Sivi</span><span>Doz / Hiz</span></div>
+        <div class="inf-row"><span class="inf-icon">&#128167;</span><span class="inf-name">Mayi</span><input class="inf-input" type="text" id="f_mayi"></div>
+        <div class="inf-row"><span class="inf-icon">&#127862;</span><span class="inf-name">Enteral Nütrisyon</span><input class="inf-input" type="text" id="f_enteral"></div>
+        <div class="inf-row"><span class="inf-icon">&#129514;</span><span class="inf-name">Parenteral Nütrisyon</span><input class="inf-input" type="text" id="f_parenteral"></div>
+        <div class="inf-row"><span class="inf-icon">&#10084;&#65039;</span><span class="inf-name">Inotrop</span><input class="inf-input" type="text" id="f_inotrop"></div>
+        <div class="inf-row"><span class="inf-icon">&#128164;</span><span class="inf-name">Precedex</span><input class="inf-input" type="text" id="f_precedex"></div>
+        <div class="divider"></div>
+        <div class="inf-row"><span style="color:var(--accent);font-size:18px;font-weight:700;text-align:center;">+</span><input class="inf-input" type="text" id="f_ek1a" placeholder="Ek infüzyon"><input class="inf-input" type="text" id="f_ek1b"></div>
+        <div class="inf-row"><span style="color:var(--accent);font-size:18px;font-weight:700;text-align:center;">+</span><input class="inf-input" type="text" id="f_ek2a" placeholder="Ek infüzyon"><input class="inf-input" type="text" id="f_ek2b"></div>
+        <div class="inf-row"><span style="color:var(--accent);font-size:18px;font-weight:700;text-align:center;">+</span><input class="inf-input" type="text" id="f_ek3a" placeholder="Ek infüzyon"><input class="inf-input" type="text" id="f_ek3b"></div>
+      </div>
+    </div>
+
+    <!-- 8. ANTİBİYOTİKLER — kirmizi -->
+    <div class="card" style="border-color:#dc2626;">
+      <div class="card-title" style="background:#fef2f2;color:#991b1b;border-bottom-color:#fecaca;">&#128138; Antibiyotik Tedavileri</div>
+      <div class="card-body">
+        <div class="abx-hdr"><span>Ilac adi</span><span>Doz</span><span>Gün</span></div>
+        <div class="abx-row"><input class="abx-inp" type="text" id="f_abx1a"><input class="abx-inp" type="text" id="f_abx1b"><input class="abx-gun" type="text" id="f_abx1c" inputmode="numeric" placeholder="—"></div>
+        <div class="abx-row"><input class="abx-inp" type="text" id="f_abx2a"><input class="abx-inp" type="text" id="f_abx2b"><input class="abx-gun" type="text" id="f_abx2c" inputmode="numeric" placeholder="—"></div>
+        <div class="abx-row"><input class="abx-inp" type="text" id="f_abx3a"><input class="abx-inp" type="text" id="f_abx3b"><input class="abx-gun" type="text" id="f_abx3c" inputmode="numeric" placeholder="—"></div>
+        <div class="abx-row"><input class="abx-inp" type="text" id="f_abx4a"><input class="abx-inp" type="text" id="f_abx4b"><input class="abx-gun" type="text" id="f_abx4c" inputmode="numeric" placeholder="—"></div>
+      </div>
+    </div>
+
+    <!-- 9. KÜLTÜR — yesil -->
+    <div class="card" style="border-color:#15803d;">
+      <div class="card-title" style="background:#f0fdf4;color:#14532d;border-bottom-color:#bbf7d0;">&#129514; Kültür Sonuclari</div>
+      <div class="card-body">
+        <div class="kult-hdr"><span>Örnek</span><span>Tarih</span><span>Üreme</span></div>
+        <div class="kult-row"><span class="kult-fixed">Santral Kan</span><input class="kult-inp" type="text" id="f_k1t"><input class="kult-inp" type="text" id="f_k1u"></div>
+        <div class="kult-row"><span class="kult-fixed">Periferik Kan</span><input class="kult-inp" type="text" id="f_k2t"><input class="kult-inp" type="text" id="f_k2u"></div>
+        <div class="kult-row"><span class="kult-fixed">Idrar</span><input class="kult-inp" type="text" id="f_k3t"><input class="kult-inp" type="text" id="f_k3u"></div>
+        <div class="kult-row"><span class="kult-fixed">DTA / BAL</span><input class="kult-inp" type="text" id="f_k4t"><input class="kult-inp" type="text" id="f_k4u"></div>
+        <div class="divider"></div>
+        <div class="kult-row"><input class="kult-inp" type="text" id="f_k5s" placeholder="Ek kültür türü"><input class="kult-inp" type="text" id="f_k5t"><input class="kult-inp" type="text" id="f_k5u"></div>
+        <div class="kult-row"><input class="kult-inp" type="text" id="f_k6s" placeholder="Ek kültür türü"><input class="kult-inp" type="text" id="f_k6t"><input class="kult-inp" type="text" id="f_k6u"></div>
+      </div>
+    </div>
+
+    <!-- 10. DENGE -->
+    <div class="card">
+      <div class="card-title">Cikarilan &amp; Denge</div>
+      <div class="card-body" style="padding:10px 14px;">
+        <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px;">
+          <div>
+            <div style="font-size:10px;font-weight:700;color:var(--label);text-transform:uppercase;letter-spacing:.3px;margin-bottom:4px;">Idrar (mL)</div>
+            <input type="text" id="d_idrar" inputmode="numeric" class="sm-inp" style="font-size:18px;font-weight:700;color:var(--accent);">
+          </div>
+          <div>
+            <div style="font-size:10px;font-weight:700;color:var(--label);text-transform:uppercase;letter-spacing:.3px;margin-bottom:4px;">Denge (mL)</div>
+            <input type="text" id="d_denge" class="sm-inp" style="font-size:18px;font-weight:700;">
+          </div>
+          <div>
+            <div style="font-size:10px;font-weight:700;color:var(--label);text-transform:uppercase;letter-spacing:.3px;margin-bottom:4px;">Ek Not</div>
+            <input type="text" id="d_eknot" class="sm-inp">
+          </div>
+        </div>
+      </div>
+    </div>
+
+  </div><!-- /form-body -->
+
+  <!-- YAN NOT -->
+  <div class="side-panel">
+    <div class="side-panel-inner">
+      <div class="side-panel-title">Nöbet Notlari</div>
+      <textarea id="f_nobetnot" placeholder="Yapilacaklar, bekleyen sonuclar..."></textarea>
+    </div>
+  </div>
+
+  </div><!-- /form-layout -->
+</div><!-- /formScreen -->
+
+<script>
+var STORE = 'ybu_v3';
+var patients = {};
+var currentId = null;
+
+var FIELDS = [
+  'yatak','protokol','tarih','ad',
+  'hastalik','kronikilas','gelisoyku','radyo',
+  'gksE','gksM','gksV','pupilnot','ekbulgu','nobetnot',
+  'mvmod',
+  'mayi','enteral','parenteral','inotrop','precedex',
+  'ek1a','ek1b','ek2a','ek2b','ek3a','ek3b',
+  'abx1a','abx1b','abx1c','abx2a','abx2b','abx2c',
+  'abx3a','abx3b','abx3c','abx4a','abx4b','abx4c',
+  'k1t','k1u','k2t','k2u','k3t','k3u','k4t','k4u',
+  'k5s','k5t','k5u','k6s','k6t','k6u'
+];
+var DENGE = ['idrar','denge','eknot'];
+var FLAGS = ['adli','vre','cre','candida'];
+
+function loadStore(){
+  try{ var r=localStorage.getItem(STORE); patients=r?JSON.parse(r):{}; }
+  catch(e){ patients={}; }
+}
+function saveStore(){ localStorage.setItem(STORE,JSON.stringify(patients)); }
+
+function renderList(){
+  var q=(document.getElementById('searchInput').value||'').toLowerCase();
+  var grid=document.getElementById('patientGrid');
+  grid.innerHTML='';
+  var GROUPS=[
+    {label:'1. Yogun Bakim',beds:[1,2,3,4,5,6,7,8,9,10,11,12,13,14]},
+    {label:'2. Yogun Bakim',beds:[15,16,17,18,19,20,21,22]},
+    {label:'3. Yogun Bakim',beds:[23,24,25,26,27]}
+  ];
+  GROUPS.forEach(function(g){
+    var matched=g.beds.filter(function(bed){
+      var pt=findByBed(bed);
+      if(!q) return true;
+      if(!pt) return false;
+      return (pt.yatak||'').includes(q)||(pt.ad||'').toLowerCase().includes(q)||(pt.protokol||'').includes(q);
+    });
+    if(q&&matched.length===0) return;
+    var h=document.createElement('div');
+    h.className='grp-heading';
+    h.textContent=g.label;
+    grid.appendChild(h);
+    g.beds.forEach(function(bed){
+      var pt=findByBed(bed);
+      if(q){
+        var m=pt&&((pt.yatak||'').includes(q)||(pt.ad||'').toLowerCase().includes(q)||(pt.protokol||'').includes(q));
+        if(!m) return;
+      }
+      var card=document.createElement('div');
+      card.className='patient-card'+(pt?' has-data':'');
+      card.onclick=function(){ pt?openPatient(pt.id):newPatient(bed); };
+      if(pt){
+        var flags=['adli','vre','cre','candida'].filter(function(f){ return pt['fl_'+f]==='on'; })
+          .map(function(f){ return '<span class="pc-flag '+f+'">'+f.toUpperCase()+'</span>'; }).join('');
+        card.innerHTML='<div class="pc-bed">'+bed+'</div><div class="pc-name">'+(pt.ad||'—')+'</div>'+(flags?'<div class="pc-flags">'+flags+'</div>':'')+'<button class="pc-delete" onclick="event.stopPropagation();delPt(\''+pt.id+'\')">&#10005;</button>';
+      } else {
+        card.innerHTML='<div class="pc-bed" style="color:var(--muted);">'+bed+'</div><div class="pc-empty">Bos</div>';
+      }
+      grid.appendChild(card);
+    });
+  });
+  if(grid.children.length===0) grid.innerHTML='<div style="grid-column:1/-1;text-align:center;padding:60px 20px;color:var(--muted);">Sonuc bulunamadi</div>';
+}
+
+function findByBed(bed){ return Object.values(patients).find(function(p){ return parseInt(p.yatak)===bed; })||null; }
+
+function newPatient(bed){
+  var id='pt_'+Date.now();
+  patients[id]={id:id,yatak:bed?String(bed):'',tarih:new Date().toISOString().slice(0,10)};
+  saveStore();
+  openPatient(id);
+}
+
+function delPt(id){
+  if(!confirm('Bu hastanin verisini silmek istiyor musunuz?')) return;
+  delete patients[id]; saveStore(); renderList();
+}
+
+function openPatient(id){
+  currentId=id;
+  var pt=patients[id];
+  FIELDS.forEach(function(f){
+    var el=document.getElementById('f_'+f);
+    if(el) el.value=pt[f]||'';
+  });
+  DENGE.forEach(function(f){
+    var el=document.getElementById('d_'+f);
+    if(el) el.value=pt['d_'+f]||'';
+  });
+  FLAGS.forEach(function(f){
+    var el=document.getElementById('fl_'+f);
+    if(el){ el.classList.remove('on','off'); el.classList.add(pt['fl_'+f]==='on'?'on':'off'); }
+  });
+  document.querySelectorAll('#pupilStatus .popt').forEach(function(b){
+    b.classList.toggle('sel', b.dataset.val===pt['pupilStatus']);
+  });
+  ['R','L'].forEach(function(s){
+    document.getElementById('irR_pos') && document.getElementById('ir'+s+'_pos').classList.remove('sel');
+    document.getElementById('irR_neg') && document.getElementById('ir'+s+'_neg').classList.remove('sel');
+    if(pt['ir'+s]==='pos') document.getElementById('ir'+s+'_pos').classList.add('sel');
+    if(pt['ir'+s]==='neg') document.getElementById('ir'+s+'_neg').classList.add('sel');
+  });
+  updateHeader();
+  document.getElementById('listScreen').style.display='none';
+  document.getElementById('formScreen').style.display='block';
+  document.getElementById('btnSave').classList.remove('saved');
+  document.getElementById('btnSave').textContent='Kaydet';
+  window.scrollTo(0,0);
+}
+
+function goBack(){
+  document.getElementById('formScreen').style.display='none';
+  document.getElementById('listScreen').style.display='block';
+  renderList();
+}
+
+function updateHeader(){
+  var bed=document.getElementById('f_yatak').value||'—';
+  var name=document.getElementById('f_ad').value||'—';
+  document.getElementById('hdrBed').textContent='Yatak '+bed;
+  document.getElementById('hdrName').textContent=name;
+}
+
+function savePatient(){
+  if(!currentId) return;
+  var pt=patients[currentId]||{id:currentId};
+  FIELDS.forEach(function(f){
+    var el=document.getElementById('f_'+f);
+    if(el) pt[f]=el.value;
+  });
+  DENGE.forEach(function(f){
+    var el=document.getElementById('d_'+f);
+    if(el) pt['d_'+f]=el.value;
+  });
+  FLAGS.forEach(function(f){
+    var el=document.getElementById('fl_'+f);
+    if(el) pt['fl_'+f]=el.classList.contains('on')?'on':'off';
+  });
+  var sp=document.querySelector('.popt.sel');
+  pt['pupilStatus']=sp?sp.dataset.val:'';
+  ['R','L'].forEach(function(s){
+    var p=document.getElementById('ir'+s+'_pos');
+    var n=document.getElementById('ir'+s+'_neg');
+    pt['ir'+s]=p&&p.classList.contains('sel')?'pos':n&&n.classList.contains('sel')?'neg':'';
+  });
+  patients[currentId]=pt;
+  saveStore();
+  var btn=document.getElementById('btnSave');
+  btn.textContent='&#10003; Kaydedildi';
+  btn.classList.add('saved');
+  setTimeout(function(){ btn.textContent='Kaydet'; btn.classList.remove('saved'); },2000);
+}
+
+function toggleFlag(id){
+  var el=document.getElementById(id);
+  el.classList.toggle('on'); el.classList.toggle('off');
+}
+
+function selectPupil(btn){
+  document.querySelectorAll('.popt').forEach(function(b){ b.classList.remove('sel'); });
+  btn.classList.add('sel');
+}
+
+function selectRefl(side,val){
+  document.getElementById('ir'+side+'_pos').classList.remove('sel');
+  document.getElementById('ir'+side+'_neg').classList.remove('sel');
+  document.getElementById('ir'+side+'_'+val).classList.add('sel');
+}
+
+loadStore();
+renderList();
+
+if('serviceWorker' in navigator){
+  navigator.serviceWorker.register('sw.js').catch(function(){});
+}
+</script>
+</body>
+</html>
