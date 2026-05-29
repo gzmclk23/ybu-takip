@@ -433,11 +433,9 @@ body{font-family:-apple-system,'Helvetica Neue',Arial,sans-serif;background:var(
   <div style="border-left:1px solid var(--border);height:28px;margin:0 2px;"></div>
   <div class="dsize">
     <button class="sel" data-size="2" onclick="setSize(this)">S</button>
-    <button data-size="4" onclick="setSize(this)">M</button>
-    <button data-size="8" onclick="setSize(this)">L</button>
+    <button data-size="5" onclick="setSize(this)">M</button>
+    <button data-size="10" onclick="setSize(this)">L</button>
   </div>
-  <div style="border-left:1px solid var(--border);height:28px;margin:0 2px;"></div>
-  <div class="dtool" onclick="clearCanvas()" title="Temizle" style="color:var(--red);">&#128465;</div>
 </div>
 
 <script>
@@ -697,7 +695,7 @@ canvas.addEventListener('pointermove', function(e){
   if(tool==='eraser'){
     ctx.globalCompositeOperation='destination-out';
     ctx.strokeStyle='rgba(0,0,0,1)';
-    ctx.lineWidth = penSize * 10;
+    ctx.lineWidth = penSize * 6;
   } else {
     ctx.globalCompositeOperation='source-over';
     ctx.strokeStyle = penColor;
